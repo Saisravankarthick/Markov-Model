@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       ticker:
-        description: "yfinance symbol (SPY, AAPL, BTC-USD, ^NSEI ...)"
+        description: "One or more yfinance symbols, comma or space separated (e.g. SPY, AAPL, BTC-USD)"
         default: "SPY"
       years:
         description: "Years of daily history"
@@ -27,7 +27,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -43,15 +43,50 @@ jobs:
           THRESHOLD: ${{ inputs.threshold }}
           HMM: ${{ inputs.hmm }}
         run: |
-          args=(--ticker "$TICKER" --years "$YEARS" --window "$WINDOW" --threshold "$THRESHOLD")
-          [ "$HMM" = "true" ] || args+=(--no-hmm)
-          status=0
-          uv run python -m markov_hedge_fund_method.run "${args[@]}" 2>/dev/null | tee result.txt || status=${PIPESTATUS[0]}
-          { echo '```'; cat result.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          exit $status
+          mkdir -p results
+          IFS=', ' read -ra tickers <<< "$TICKER"
+          fail=0
+          {
+            echo "## Markov regime — window $WINDOW, threshold ±$THRESHOLD, $YEARS years"
+            echo
+            echo "| Ticker | Rows | Long-run Bear | Long-run Sideways | Long-run Bull | Bear→Bear | Bull→Bull | Sharpe | Max DD |"
+            echo "|---|---|---|---|---|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for t in "${tickers[@]}"; do
+            [ -n "$t" ] || continue
+            out="results/$t.txt"
+            args=(--ticker "$t" --years "$YEARS" --window "$WINDOW" --threshold "$THRESHOLD")
+            [ "$HMM" = "true" ] || args+=(--no-hmm)
+            echo "::group::$t"
+            if uv run python -m markov_hedge_fund_method.run "${args[@]}" > "$out" 2>/dev/null; then
+              cat "$out"
+              awk -v t="$t" '
+                /fetched/ {rows=$2}
+                /Persistence diagonal/ {s="p"; next}
+                /Stationary distribution/ {s="s"; next}
+                /^$/ {s=""}
+                s=="p" && /->/ {if ($1=="Bear") pb=$NF; else if ($1=="Bull") pu=$NF}
+                s=="s" && /:/ {if ($1=="Bear:") sb=$NF; else if ($1=="Sideways:") ss=$NF; else if ($1=="Bull:") su=$NF}
+                /Sharpe/ {sh=$NF}
+                /Max drawdown/ {dd=$NF}
+                END {printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n", t, rows, sb, ss, su, pb, pu, sh, dd}
+              ' "$out" >> "$GITHUB_STEP_SUMMARY"
+            else
+              cat "$out"
+              echo "| $t | failed | | | | | | | |" >> "$GITHUB_STEP_SUMMARY"
+              fail=$((fail + 1))
+            fi
+            echo "::endgroup::"
+            sleep 2
+          done
+          {
+            echo
+            echo "_Backtests are historical, not forward-looking, and exclude trading costs. Full output per ticker is in the job log and the \`results\` artifact._"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$fail" -lt "${#tickers[@]}" ]
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: result
-          path: result.txt
+          name: results
+          path: results/
           if-no-files-found: ignore

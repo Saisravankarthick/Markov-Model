@@ -1,92 +1,87 @@
-# Markov Hedge Fund Method
+# Markov Regime Model
 
-Skill from **video 1 of the Quant Series**: *How To Use The Hedge Fund Method To Win Every Single Trade*.
-
-Framework by **Roan** ([@RohOnChain](https://x.com/RohOnChain)) — I'm the guy installing it on camera.
-
----
-
-## Install (the headline path — two commands)
-
-In Claude Code:
-
-```
-/plugin marketplace add jackson-video-resources/markov-hedge-fund-method
-/plugin install markov-hedge-fund-method@markov-hedge-fund-method
-```
-
-That's it. The skill is now installed. Invoke it any time, on any asset:
-
-```
-/markov-hedge-fund-method:regime
-```
-
-…or just ask in plain English: *"detect the regime on BTC-USD"*,
-*"add a regime confirmation filter to my SPY momentum strategy"*,
-*"what's the long-run regime mix of AAPL — is it too tail-heavy to trade?"*
-Claude fires the `regime` skill automatically.
-
-No API keys. No accounts. No `sudo`. Dependencies are resolved on first run by
-`uv` (PEP 723 inline metadata) — nothing to pip-install yourself.
-
----
-
-## What the skill does
-
-It answers one question for **any asset**: what regime are we in, how sticky is
-it, and what does that imply for risk and direction?
+Markov regime detection for any asset. For a price series it:
 
 - Labels every day Bull / Bear / Sideways via a rolling-return rule (default 20-day, ±5%)
 - Builds a 3×3 transition matrix from the asset's history (maximum-likelihood)
-- Forecasts n-steps ahead by raising the matrix to powers (Chapman-Kolmogorov)
+- Forecasts n steps ahead by raising the matrix to powers (Chapman-Kolmogorov)
 - Computes the long-run stationary distribution (baseline regime mix)
 - Emits a signed signal: `bull_prob − bear_prob` → direction + conviction
 - Runs a walk-forward backtest (no lookahead) → reports Sharpe + max drawdown
-- Optionally fits a Hidden Markov Model via `hmmlearn` (graceful degrade if it can't compile)
+- Optionally fits a Hidden Markov Model via `hmmlearn`
 
-It takes **either a ticker** (`--ticker BTC-USD`, fetched via `yfinance`) **or
-your own CSV** (`--csv my_prices.csv`, just a date + close column) — so it drops
-into whatever data pipeline you already run, on whatever asset you trade.
+Input is either a ticker (`--ticker BTC-USD`, fetched via `yfinance`) or your
+own CSV (`--csv my_prices.csv`, a date column + a close column).
 
-It's built to **compose**: slot it into a trading agent you already have as a
-confirmation layer, a standalone signal, or a tail-risk filter — without
-rewriting your strategy. See [`skills/regime/SKILL.md`](./skills/regime/SKILL.md)
-for the JSON contract and three worked composition patterns.
+Backtests are historical, not forward-looking, and exclude trading costs.
 
 ---
 
-## The on-camera build / zero-trust manual path
+## Run it on GitHub (no install)
 
-[`markov-hedge-fund-method.md`](./markov-hedge-fund-method.md) is the original
-one-shot onboarding prompt — the version built **live on camera**. Paste it
-into Claude Code (agent mode) and it builds the whole skill from scratch in
-front of you: detects your OS, installs `uv`, writes every file, runs the
-sanity check.
+1. Open the repo's **Actions** tab.
+2. Pick **Markov regime** in the left sidebar → **Run workflow**.
+3. Enter a ticker (e.g. `SPY`, `AAPL`, `BTC-USD`, `^NSEI`) or leave it blank
+   and give the path of a CSV committed to the repo. Adjust window, threshold,
+   years and HMM if you want → **Run workflow**.
+4. Open the finished run. The results (current regime, signal, transition
+   matrix, long-run mix, backtest, HMM) are on the run's **Summary** page, and
+   the raw JSON is attached under **Artifacts** as `regime-result`.
 
-It's kept here as the **zero-trust path**: if you don't want to install a
-plugin from a marketplace, this builds the identical logic locally so you can
-read every line as it's written. Most people should use the two-command plugin
-install above — this is the transparent fallback and the on-camera artifact.
+The workflow is [`.github/workflows/regime.yml`](./.github/workflows/regime.yml).
+Yahoo Finance occasionally rate-limits GitHub's runners; if a ticker run fails
+with "empty data", re-run it a few minutes later.
 
----
+## Run it locally
 
-## Pine Script bonus
+Requires [`uv`](https://docs.astral.sh/uv/getting-started/installation/);
+dependencies install automatically on first run.
+
+```bash
+uv run scripts/markov_regime.py --ticker SPY            # pretty terminal output
+uv run scripts/markov_regime.py --ticker SPY --json     # machine-readable
+uv run scripts/markov_regime.py --csv my_prices.csv     # your own data
+```
+
+Options: `--window 20`, `--threshold 0.05`, `--years 10`, `--min-train 252`,
+`--no-hmm`.
+
+## Use it as a Claude Code plugin
+
+On your own machine, in Claude Code:
+
+```
+/plugin marketplace add Saisravankarthick/Markov-Model
+/plugin install markov-hedge-fund-method@markov-hedge-fund-method
+```
+
+Then invoke `/markov-hedge-fund-method:regime`, or ask in plain English
+(*"detect the regime on BTC-USD"*). See
+[`skills/regime/SKILL.md`](./skills/regime/SKILL.md) for the JSON contract and
+composition patterns.
+
+## TradingView indicator
 
 [`pine-script/markov-hedge-fund-method.pine`](./pine-script/markov-hedge-fund-method.pine)
-— TradingView v5 indicator that paints the framework live on a chart: regime
-ribbon, live 3×3 transition matrix in the corner, stationary-distribution
-table, current-regime banner. Inputs: lookback window (default 20), Bull/Bear
-thresholds (default ±5%), table toggles.
+is a Pine Script v5 indicator: regime ribbon, live 3×3 transition matrix,
+stationary-distribution table and current-regime banner.
+TradingView → Pine Editor → paste → Save → Add to Chart.
 
-Open TradingView → Pine Editor → paste the `.pine` → Save → Add to Chart.
+It labels with log returns, while the Python script uses simple returns, so
+labels near the threshold can differ slightly between the two.
 
----
+## Other files
 
-## Credit
+- [`markov-hedge-fund-method.md`](./markov-hedge-fund-method.md) — the
+  original one-shot onboarding prompt that builds an earlier version of the
+  skill into `~/.claude/skills/` (defaults to a ±2% threshold).
+- [`scripts/summarize.py`](./scripts/summarize.py) — renders the `--json`
+  output as Markdown (used by the workflow).
 
-- **Framework:** Roan ([@RohOnChain](https://x.com/RohOnChain)) — read his original article for the underlying maths.
-- **Plugin + installer + animations:** [Lewis Jackson](https://www.youtube.com/@lewisjackson).
+## Credit and license
 
-## License
+- Framework: Roan ([@RohOnChain](https://x.com/RohOnChain)).
+- Plugin, installer and Pine Script: Lewis Jackson —
+  [jackson-video-resources/markov-hedge-fund-method](https://github.com/jackson-video-resources/markov-hedge-fund-method).
 
-MIT — see the umbrella [LICENSE](../LICENSE).
+Upstream is MIT-licensed; see the upstream repository for the license text.

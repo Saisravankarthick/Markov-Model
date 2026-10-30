@@ -1,0 +1,57 @@
+name: Run Markov skill
+
+# Actions tab → "Run Markov skill" → Run workflow
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: "yfinance symbol (SPY, AAPL, BTC-USD, ^NSEI ...)"
+        default: "SPY"
+      years:
+        description: "Years of daily history"
+        default: "10"
+      window:
+        description: "Rolling-return window in trading days"
+        default: "20"
+      threshold:
+        description: "Regime threshold as a fraction (0.02 = ±2%)"
+        default: "0.02"
+      hmm:
+        description: "Also fit the Hidden Markov Model"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install HMM extension (optional)
+        run: |
+          uv sync
+          uv pip install "hmmlearn>=0.3" && echo true > .hmm_available || echo false > .hmm_available
+      - name: Run
+        env:
+          TICKER: ${{ inputs.ticker }}
+          YEARS: ${{ inputs.years }}
+          WINDOW: ${{ inputs.window }}
+          THRESHOLD: ${{ inputs.threshold }}
+          HMM: ${{ inputs.hmm }}
+        run: |
+          args=(--ticker "$TICKER" --years "$YEARS" --window "$WINDOW" --threshold "$THRESHOLD")
+          [ "$HMM" = "true" ] || args+=(--no-hmm)
+          status=0
+          uv run python -m markov_hedge_fund_method.run "${args[@]}" 2>/dev/null | tee result.txt || status=${PIPESTATUS[0]}
+          { echo '```'; cat result.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result
+          path: result.txt
+          if-no-files-found: ignore

@@ -1,6 +1,6 @@
 # Markov regime report
 
-Updated 2026-10-30 06:34 UTC · 10 years of daily data · 20-day window · ±2% threshold
+Updated 2026-10-30 12:44 UTC · 10 years of daily data · 20-day window · ±2% threshold
 
 Each day is labelled **Bull**, **Bear** or **Sideways** from the trailing return. *Long-run mix* is the share of time the model expects in each regime. *Stays* is the chance a regime continues the next day. *Strategy* goes long in Bull-leaning states and short in Bear-leaning ones, re-fitted every day with no lookahead; *B&H* is simply holding the asset over the same days. Backtests are historical, not forward-looking, and exclude trading costs.
 
@@ -29,6 +29,14 @@ Each day is labelled **Bull**, **Bear** or **Sideways** from the trailing return
 | [SNDK](#sndk) | Bear | 25.3% | 7.1% | 67.6% | 90.2% | 95.6% | 1.76 | 1.59 | -43% | -56% | 2025-02-13 |
 | [NKE](#nke) | Bull | 36.4% | 21.7% | 41.9% | 86.6% | 87.1% | -0.07 | 0.09 | -70% | -79% | 2016-10-31 |
 | [MA](#ma) | Bull | 24.3% | 26.0% | 49.8% | 82.8% | 90.2% | -0.34 | 0.74 | -80% | -41% | 2016-10-31 |
+| [XLE](#xle) | Bull | 30.6% | 25.7% | 43.7% | 86.0% | 89.7% | 0.06 | 0.54 | -68% | -67% | 2016-10-31 |
+| [RSP](#rsp) | Bull | 19.8% | 36.3% | 43.8% | 88.4% | 87.9% | 0.36 | 0.67 | -37% | -39% | 2016-10-31 |
+| [VTV](#vtv) | Bull | 17.5% | 38.6% | 44.0% | 84.1% | 89.3% | 0.31 | 0.75 | -31% | -37% | 2016-10-31 |
+| [SCHD](#schd) | Bull | 18.8% | 37.5% | 43.7% | 84.6% | 88.9% | 0.21 | 0.78 | -35% | -33% | 2016-10-31 |
+| [HYG](#hyg) | Sideways | 7.6% | 81.5% | 10.8% | 78.1% | 80.5% | -0.00 | 0.50 | -31% | -22% | 2016-10-31 |
+| [TLT](#tlt) | Bull | 28.4% | 44.3% | 27.3% | 85.3% | 84.6% | -0.13 | -0.05 | -43% | -48% | 2016-10-31 |
+| [VGIT](#vgit) | Sideways | 4.8% | 89.4% | 5.9% | 77.5% | 78.9% | 0.33 | 0.32 | -14% | -16% | 2016-10-31 |
+| [XLU](#xlu) | Bull | 24.7% | 33.2% | 42.1% | 84.4% | 88.0% | 0.04 | 0.51 | -57% | -36% | 2016-10-31 |
 
 ## Charts
 
@@ -107,3 +115,35 @@ Each day is labelled **Bull**, **Bear** or **Sideways** from the trailing return
 ### MA
 
 ![MA](charts/MA.png)
+
+### XLE
+
+![XLE](charts/XLE.png)
+
+### RSP
+
+![RSP](charts/RSP.png)
+
+### VTV
+
+![VTV](charts/VTV.png)
+
+### SCHD
+
+![SCHD](charts/SCHD.png)
+
+### HYG
+
+![HYG](charts/HYG.png)
+
+### TLT
+
+![TLT](charts/TLT.png)
+
+### VGIT
+
+![VGIT](charts/VGIT.png)
+
+### XLU
+
+![XLU](charts/XLU.png)

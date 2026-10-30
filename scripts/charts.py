@@ -18,6 +18,7 @@ checks its Sharpe against the package's own number.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -99,7 +100,11 @@ def ticker_figure(name, close, window, threshold, out_dir: Path) -> dict:
     # 2. equity curves
     ax2 = fig.add_subplot(gs[1, 0])
     stats = {"ticker": name, "rows": len(close), "start": str(close.index[0].date()),
-             "bear": pi[0], "side": pi[1], "bull": pi[2], "sharpe": float("nan"), "maxdd": float("nan")}
+             "end": str(close.index[-1].date()), "current": current,
+             "bear": pi[0], "side": pi[1], "bull": pi[2],
+             "bear_stay": P[0, 0], "side_stay": P[1, 1], "bull_stay": P[2, 2],
+             "sharpe": float("nan"), "maxdd": float("nan"),
+             "bh_sharpe": float("nan"), "bh_maxdd": float("nan")}
     if strat is not None:
         ax2.plot((1 + strat).cumprod(), color="#2E6F57", lw=1.3,
                  label=f"Strategy (Sharpe {sharpe(strat):.2f}, maxDD {max_drawdown(strat) * 100:.0f}%)")
@@ -108,6 +113,7 @@ def ticker_figure(name, close, window, threshold, out_dir: Path) -> dict:
         ax2.set_yscale("log")
         ax2.legend(loc="upper left", frameon=False, fontsize=9)
         stats["sharpe"], stats["maxdd"] = sharpe(strat), max_drawdown(strat)
+        stats["bh_sharpe"], stats["bh_maxdd"] = sharpe(bh), max_drawdown(bh)
         ref = walk_forward_backtest(close, labels)["sharpe"]
         if np.isfinite(ref) and abs(ref - stats["sharpe"]) > 1e-6:
             print(f"  ! {name}: chart Sharpe {stats['sharpe']:.4f} != package {ref:.4f}", file=sys.stderr)
@@ -166,13 +172,14 @@ def main() -> int:
     ap.add_argument("--window", type=int, default=20)
     ap.add_argument("--threshold", type=float, default=0.02)
     ap.add_argument("--out", default="charts")
+    ap.add_argument("--stats", default=None, help="write per-ticker numbers to this JSON file")
     a = ap.parse_args()
 
     from markov_hedge_fund_method.run import _fetch_with_retry
 
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    rows = []
+    rows, failed = [], []
     for t in [x for x in re.split(r"[,\s]+", a.tickers) if x]:
         try:
             df = _fetch_with_retry(t, a.years)
@@ -182,10 +189,16 @@ def main() -> int:
             rows.append(ticker_figure(t, close, a.window, a.threshold, out))
             print(f"chart ok: {t}")
         except Exception as exc:  # noqa: BLE001
+            failed.append(t)
             print(f"chart FAILED: {t}: {exc}", file=sys.stderr)
     if rows:
         mix_figure(rows, out)
         print(f"{len(rows)} ticker chart(s) + comparison saved to {out}/")
+    if a.stats:
+        clean = [{k: (None if isinstance(v, float) and not np.isfinite(v) else v) for k, v in r.items()} for r in rows]
+        payload = {"params": {"years": a.years, "window": a.window, "threshold": a.threshold},
+                   "tickers": clean, "failed": failed}
+        Path(a.stats).write_text(json.dumps(payload, indent=1))
     return 0 if rows else 1
 
 

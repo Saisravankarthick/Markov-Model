@@ -1,6 +1,7 @@
 name: Run Markov skill
 
 # Actions tab → "Run Markov skill" → Run workflow
+# Commits report/REPORT.md (table + charts) back to the repo.
 on:
   workflow_dispatch:
     inputs:
@@ -17,12 +18,12 @@ on:
         description: "Regime threshold as a fraction (0.02 = ±2%)"
         default: "0.02"
       hmm:
-        description: "Also fit the Hidden Markov Model"
+        description: "Also fit the Hidden Markov Model (shown in the job log)"
         type: boolean
         default: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   run:
@@ -35,7 +36,7 @@ jobs:
         run: |
           uv sync
           uv pip install "hmmlearn>=0.3" && echo true > .hmm_available || echo false > .hmm_available
-      - name: Run
+      - name: Run the skill on each ticker (full output in this log)
         env:
           TICKER: ${{ inputs.ticker }}
           YEARS: ${{ inputs.years }}
@@ -43,69 +44,37 @@ jobs:
           THRESHOLD: ${{ inputs.threshold }}
           HMM: ${{ inputs.hmm }}
         run: |
-          mkdir -p results
           IFS=', ' read -ra tickers <<< "$TICKER"
-          fail=0
-          {
-            echo "## Markov regime — window $WINDOW, threshold ±$THRESHOLD, $YEARS years"
-            echo
-            echo "| Ticker | Rows | Long-run Bear | Long-run Sideways | Long-run Bull | Bear→Bear | Bull→Bull | Sharpe | Max DD |"
-            echo "|---|---|---|---|---|---|---|---|---|"
-          } >> "$GITHUB_STEP_SUMMARY"
           for t in "${tickers[@]}"; do
             [ -n "$t" ] || continue
-            out="results/$t.txt"
             args=(--ticker "$t" --years "$YEARS" --window "$WINDOW" --threshold "$THRESHOLD")
             [ "$HMM" = "true" ] || args+=(--no-hmm)
             echo "::group::$t"
-            if uv run python -m markov_hedge_fund_method.run "${args[@]}" > "$out" 2>/dev/null; then
-              cat "$out"
-              awk -v t="$t" '
-                /fetched/ {rows=$2}
-                /Persistence diagonal/ {s="p"; next}
-                /Stationary distribution/ {s="s"; next}
-                /^$/ {s=""}
-                s=="p" && /->/ {if ($1=="Bear") pb=$NF; else if ($1=="Bull") pu=$NF}
-                s=="s" && /:/ {if ($1=="Bear:") sb=$NF; else if ($1=="Sideways:") ss=$NF; else if ($1=="Bull:") su=$NF}
-                /Sharpe/ {sh=$NF}
-                /Max drawdown/ {dd=$NF}
-                END {printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n", t, rows, sb, ss, su, pb, pu, sh, dd}
-              ' "$out" >> "$GITHUB_STEP_SUMMARY"
-            else
-              cat "$out"
-              echo "| $t | failed | | | | | | | |" >> "$GITHUB_STEP_SUMMARY"
-              fail=$((fail + 1))
-            fi
+            uv run python -m markov_hedge_fund_method.run "${args[@]}" 2>/dev/null || echo "FAILED: $t"
             echo "::endgroup::"
-            sleep 2
           done
-          {
-            echo
-            echo "_Backtests are historical, not forward-looking, and exclude trading costs. Full output per ticker is in the job log and the \`results\` artifact._"
-          } >> "$GITHUB_STEP_SUMMARY"
-          [ "$fail" -lt "${#tickers[@]}" ]
-      - name: Draw charts
+      - name: Draw charts and build the report
         env:
           TICKER: ${{ inputs.ticker }}
           YEARS: ${{ inputs.years }}
           WINDOW: ${{ inputs.window }}
           THRESHOLD: ${{ inputs.threshold }}
         run: |
+          rm -rf report && mkdir -p report/charts
           uv run --with matplotlib python scripts/charts.py \
             --tickers "$TICKER" --years "$YEARS" --window "$WINDOW" --threshold "$THRESHOLD" \
-            --out charts 2>&1 | grep -v "Warning\|^See https\|df\.\|data\." || true
-          n=$(ls charts/*.png 2>/dev/null | wc -l)
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Charts:** $n image(s) — download the \`charts\` artifact at the bottom of this page." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: results
-          path: results/
-          if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: charts
-          path: charts/
-          if-no-files-found: ignore
+            --out report/charts --stats report/stats.json 2>&1 | grep -v "Warning\|^See https\|\.set_index\|\.sort_index\|\.rename\|\.drop" || true
+          python3 scripts/report.py report/stats.json report/REPORT.md
+          grep -v '^!\[' report/REPORT.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit report to the repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add report
+          if git diff --cached --quiet; then
+            echo "No report changes."
+          else
+            git commit -m "Update report: ${{ inputs.ticker }}"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

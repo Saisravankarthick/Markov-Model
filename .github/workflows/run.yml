@@ -27,7 +27,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -84,9 +84,28 @@ jobs:
             echo "_Backtests are historical, not forward-looking, and exclude trading costs. Full output per ticker is in the job log and the \`results\` artifact._"
           } >> "$GITHUB_STEP_SUMMARY"
           [ "$fail" -lt "${#tickers[@]}" ]
+      - name: Draw charts
+        env:
+          TICKER: ${{ inputs.ticker }}
+          YEARS: ${{ inputs.years }}
+          WINDOW: ${{ inputs.window }}
+          THRESHOLD: ${{ inputs.threshold }}
+        run: |
+          uv run --with matplotlib python scripts/charts.py \
+            --tickers "$TICKER" --years "$YEARS" --window "$WINDOW" --threshold "$THRESHOLD" \
+            --out charts 2>&1 | grep -v "Warning\|^See https\|df\.\|data\." || true
+          n=$(ls charts/*.png 2>/dev/null | wc -l)
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Charts:** $n image(s) — download the \`charts\` artifact at the bottom of this page." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: results
           path: results/
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: charts
+          path: charts/
           if-no-files-found: ignore

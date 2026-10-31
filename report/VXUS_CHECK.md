@@ -1,6 +1,6 @@
 # VXUS: your readings vs Yahoo, and the 20-day regime
 
-Updated 2026-10-31 12:20 UTC · tolerance ±0.10 · window 20 trading days · threshold ±2%
+Updated 2026-10-31 12:28 UTC · tolerance ±0.10 · window 20 trading days · threshold ±2%
 
 **13 of 22** readings match Yahoo's close within ±0.10 (your numbers are used); **9** differ by more and use Yahoo's price.
 

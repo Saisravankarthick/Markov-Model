@@ -1,6 +1,6 @@
 # Window and threshold sensitivity test
 
-Updated 2026-10-31 12:20 UTC · 10 years of daily data · walk-forward (no lookahead) · costs: 5 basis points per unit of position change
+Updated 2026-10-31 12:28 UTC · 10 years of daily data · walk-forward (no lookahead) · costs: 5 basis points per unit of position change
 
 Each row re-runs the regime model with a different rolling window and threshold. **Sharpe (net)** subtracts trading costs. **Changes/yr** is how often the position flips. The **out-of-sample** line picks the best setting on the first half of the period and then shows how that same setting did on the second half.
 

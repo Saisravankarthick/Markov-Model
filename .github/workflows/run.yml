@@ -60,7 +60,7 @@ jobs:
           WINDOW: ${{ inputs.window }}
           THRESHOLD: ${{ inputs.threshold }}
         run: |
-          rm -rf report && mkdir -p report/charts
+          rm -rf report/charts report/REPORT.md report/stats.json && mkdir -p report/charts
           uv run --with matplotlib python scripts/charts.py \
             --tickers "$TICKER" --years "$YEARS" --window "$WINDOW" --threshold "$THRESHOLD" \
             --out report/charts --stats report/stats.json 2>&1 | grep -v "Warning\|^See https\|\.set_index\|\.sort_index\|\.rename\|\.drop" || true

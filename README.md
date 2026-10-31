@@ -2,6 +2,8 @@
 
 **[→ Open the latest report](report/REPORT.md)** (table and charts for every ticker)
 
+Also: **[window and threshold test](report/SENSITIVITY.md)** · **[VXUS: your readings vs Yahoo](report/VXUS_CHECK.md)** (run **Actions → Window test and price check** to refresh)
+
 ## Update the report
 
 1. Go to the **Actions** tab → **Run Markov skill** → **Run workflow**.

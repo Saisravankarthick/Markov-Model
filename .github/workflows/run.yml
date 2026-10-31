@@ -7,7 +7,7 @@ on:
     inputs:
       ticker:
         description: "One or more yfinance symbols, comma or space separated (e.g. SPY, AAPL, BTC-USD)"
-        default: "VOO, VTI, EWT, SHY, SGOV, SCHP, IEF, VXUS, QQQM, AAPL, GOOG, AAAU, MSFT, NVDA, TSLA, SPOT, SNDK, NKE, MA, XLE, RSP, VTV, SCHD, HYG, TLT, VGIT, XLU"
+        default: "VOO, VTI, EWT, SHY, SGOV, SCHP, IEF, VXUS, QQQM, AAPL, GOOG, AAAU, MSFT, NVDA, TSLA, SPOT, SNDK, NKE, MA, XLE, RSP, VTV, SCHD, HYG, TLT, VGIT, XLU, EQAL"
       years:
         description: "Years of daily history"
         default: "10"

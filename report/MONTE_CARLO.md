@@ -1,6 +1,6 @@
 # Monte Carlo: EQAL + VXUS
 
-Updated 2026-11-01 00:05 UTC · 10,000 simulated futures of 10 years (2,520 trading days) · seed 42 · blocks of 20 real days resampled from 2016-11-02 to 2026-10-30
+Updated 2026-11-01 00:17 UTC · 10,000 simulated futures of 10 years (2,520 trading days) · seed 42 · blocks of 20 real days resampled from 2016-11-02 to 2026-10-30
 
 ## Setup
 
@@ -10,25 +10,25 @@ Updated 2026-11-01 00:05 UTC · 10,000 simulated futures of 10 years (2,520 trad
 | VXUS | $14,500 | 50.9% |
 | **Total** | **$28,500** | 100% |
 
-Buy-and-hold: no rebalancing, no contributions or withdrawals, no taxes or costs. Prices are dividend-adjusted (total return). **Scenario A: history repeats.** **Scenario B: 3% a year is subtracted from every fund's return**, a stress case (my assumption, not a forecast).
+Buy-and-hold: no rebalancing, no contributions or withdrawals, no taxes or costs. Prices are dividend-adjusted (total return). **Scenario A: history repeats.** **Scenario B: 3.25% a year is subtracted from every fund's return**, a stress case (my assumption, not a forecast).
 
 For reference, the actual last 10.0 years of this exact mix: **10.0% a year**, worst fall **-38%**, $28,500 became $73,573.
 
 ## 1. Where $28,500 could end up
 
-| After 10 years | A: history repeats | B: −3%/yr stress |
+| After 10 years | A: history repeats | B: −3.25%/yr stress |
 |---|---|---|
-| 5th percentile value | $29,134 | $22,426 |
-| 25th percentile value | $52,526 | $39,010 |
-| 50th percentile value (median) | $76,465 | $56,507 |
-| 75th percentile value | $109,504 | $80,237 |
-| 95th percentile value | $182,496 | $131,033 |
-| Median growth per year | 10.4% | 7.1% |
-| Chance of ending below $28,500 (the amount invested) | 4.6% | 10.9% |
+| 5th percentile value | $29,134 | $21,872 |
+| 25th percentile value | $52,526 | $38,047 |
+| 50th percentile value (median) | $76,464 | $55,113 |
+| 75th percentile value | $109,504 | $78,257 |
+| 95th percentile value | $182,497 | $127,800 |
+| Median growth per year | 10.4% | 6.8% |
+| Chance of ending below $28,500 (the amount invested) | 4.6% | 11.7% |
 | Median worst fall along the way | -34% | -36% |
 | Chance of a fall worse than −20% | 91% | 94% |
-| Chance of a fall worse than −30% | 66% | 72% |
-| Chance of a fall worse than −40% | 30% | 37% |
+| Chance of a fall worse than −30% | 66% | 73% |
+| Chance of a fall worse than −40% | 30% | 38% |
 
 *No liability was entered. Add its amount and timing (for example $20,000 in 4 years) and rerun to get the chance of falling short.*
 

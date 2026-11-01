@@ -1,0 +1,75 @@
+name: Monte Carlo simulation
+
+# Actions tab → "Monte Carlo simulation" → Run workflow
+# Writes report/MONTE_CARLO.md and report/mc/*.png and commits them.
+on:
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: "Funds (comma separated)"
+        default: "EQAL, VXUS"
+      amounts:
+        description: "Dollar amount in each fund, same order (comma separated)"
+        default: "14000, 14500"
+      horizon_years:
+        description: "Years to simulate"
+        default: "10"
+      paths:
+        description: "Number of simulated futures"
+        default: "10000"
+      block:
+        description: "Block length in trading days for resampling"
+        default: "20"
+      haircut:
+        description: "Stress case: yearly return subtracted (0.03 = 3 points a year)"
+        default: "0.03"
+      liability:
+        description: "Liability amount in dollars (leave blank if none)"
+        default: ""
+      liability_years:
+        description: "Years until the liability is due"
+        default: "4"
+      seed:
+        description: "Random seed (same seed = same result)"
+        default: "42"
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: Run the simulation
+        env:
+          TICKERS: ${{ inputs.tickers }}
+          AMOUNTS: ${{ inputs.amounts }}
+          HORIZON: ${{ inputs.horizon_years }}
+          PATHS: ${{ inputs.paths }}
+          BLOCK: ${{ inputs.block }}
+          HAIRCUT: ${{ inputs.haircut }}
+          LIAB: ${{ inputs.liability }}
+          LIABY: ${{ inputs.liability_years }}
+          SEED: ${{ inputs.seed }}
+        run: |
+          uv run --with matplotlib python scripts/montecarlo.py \
+            --tickers "$TICKERS" --amounts "$AMOUNTS" --horizon "$HORIZON" --paths "$PATHS" \
+            --block "$BLOCK" --haircut "$HAIRCUT" --liability "${LIAB:-0}" --liability-years "$LIABY" \
+            --seed "$SEED" --out report/MONTE_CARLO.md --charts report/mc 2>&1 | grep -v "Warning\|^See https\|\.set_index\|\.sort_index\|\.rename\|\.drop" || true
+          grep -v '^!\[' report/MONTE_CARLO.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit results to the repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add report/MONTE_CARLO.md report/mc
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Update Monte Carlo: ${{ inputs.tickers }}"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
